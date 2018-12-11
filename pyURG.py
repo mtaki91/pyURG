@@ -10,8 +10,9 @@ class serial_URG(serial.Serial):
     self.timeout = timeout
 
     self.latest_timestamp = 0
-
+    self.timestamp_param = np.array([0, 1/1000.])
     self.connect()
+    self.set_scip2()
     self.get_version()
     print "Connect to " + self.version['PROD'] + " No."+ self.version["SERI"]
     self.get_parameter()
@@ -81,25 +82,43 @@ class serial_URG(serial.Serial):
     return info
 
 
-  def match_timestamp(self):
+  def init_timestamp2(self, n = 100):
+    self.write("TM0\n")
+    self.receive_data()
+    A = []
+    b = []
+    for i in range(n):
+      self.write("TM1\n")
+      tm_pc = time.time()
+      received = self.receive_data()
+      tm_urg = decode(received[2][:-2])[0]
+      A.append([1, tm_urg])
+      b.append(tm_pc)
+      time.sleep(0.01)
+    self.write("TM2\n")
+    self.receive_data()
+    A_T = np.linalg.pinv(A)
+    self.timestamp_param = np.dot(A_T, b).reshape(2)
+
+   
+  def init_timestamp(self):
     self.write("TM0\n")
     self.receive_data()
     self.write("TM1\n")
-    tm_pc = time.time()    
+    tm_pc = time.time()
     received = self.receive_data()
     self.write("TM2\n")
     self.receive_data()
     tm_urg = decode(received[2][:-2])[0]
-    self.time_diff = tm_pc - tm_urg / 1000.
+    self.timestamp_param[0] = tm_pc - tm_urg * self.timestamp_param[1]
 
-
+    
   def decode_timestamp(self, encode_str):
-    time = decode(encode_str)[0] #ms
+    time = decode(encode_str)[0]
     if time < self.latest_timestamp:
-      self.time_diff += (2 ** 24) /1000.
+      self.timestamp_param[0] += (2 ** 24) * self.timestamp_param[1]
     self.latest_timestamp = time
-
-    return time / 1000.0 + self.time_diff
+    return time * self.timestamp_param[1] + self.timestamp_param[0]
 
   
   def get_scantime_table(self):
@@ -137,7 +156,7 @@ class serial_URG(serial.Serial):
     self.write("RS\n")
     dat = self.receive_data()
     self.latest_timestamp = 0
-    self.match_timestamp()
+    self.init_timestamp()
     self.get_scantime_table()
 
     
@@ -145,7 +164,7 @@ class serial_URG(serial.Serial):
     self.write("RT\n")
     dat = self.receive_data()
     self.latest_timestamp = 0
-    self.match_timestamp()
+    self.init_timestamp()
     self.get_scantime_table()
 
     

@@ -1,6 +1,7 @@
 # pyURG
 python program to use URG sensor (HOKUYO) which is connected through USB
 
+
 ## How to install
 
 install python-serial
@@ -13,6 +14,17 @@ sudo pip install python-serial
 ```
 from pyURG import serial_URG
 URG1 = serial_URG("/dev/ttyACM0", 900000)
+```
+
+### Init timestamp (Optional)
+matching timestamp precisely
+```
+URG1.init_timestamp2()
+```
+
+Simple one
+```
+URG1.init_timestamp()
 ```
 
 ### Single capture
@@ -32,7 +44,6 @@ xyz_MDMS[m][n]: xyz value of a point. (z=0)
 tm_MDMS[m][n] : the time when xyz_MDMS[m][n] is captured.
 
 ### Setting
-#### change measure mode
 ```
 MODE = 1
 URG1.change_measure_mode(MODE)
@@ -40,8 +51,8 @@ URG1.change_measure_mode(MODE)
 MODE: 0 -> Normal sensitive mode  
 MODE: 1 -> High sensitive mode  
 
+---
 
-#### adjust motor speed
 ```
 SPEED_PARAM = 10
 URG1.adjust_motor_speed(SPEED_PARAM)
